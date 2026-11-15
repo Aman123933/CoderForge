@@ -1,0 +1,45 @@
+ai-autonomous-coder/
+│
+├── backend/
+│   ├── app/
+│   │   ├── main.py                # FastAPI entry
+│   │   ├── api/
+│   │   │   └── routes.py
+│   │   ├── agents/
+│   │   │   ├── base_agent.py
+│   │   │   ├── intent_agent.py
+│   │   │   ├── planner_agent.py
+│   │   │   ├── architect_agent.py
+│   │   │   ├── coder_agent.py
+│   │   │   ├── reviewer_agent.py
+│   │   │   └── runner_agent.py
+│   │   ├── llm/
+│   │   │   ├── llm_interface.py
+│   │   │   ├── groq_client.py
+│   │   │   └── gemini_client.py
+│   │   ├── tools/
+│   │   │   ├── file_tools.py
+│   │   │   ├── execution_tools.py
+│   │   │   └── logging_tools.py
+│   │   ├── memory/
+│   │   │   └── state_store.py
+│   │   └── config/
+│   │       └── settings.py
+│   │
+│   └── generated_apps/
+│
+├── frontend/
+│   ├── src/
+│   │   ├── pages/
+│   │   ├── components/
+│   │   ├── animations/
+│   │   ├── api/
+│   │   └── styles/
+│   └── package.json
+│
+├── docs/
+│   ├── architecture.md
+│   ├── agent_flow.md
+│   └── ui_guidelines.md
+│
+└── README.md
