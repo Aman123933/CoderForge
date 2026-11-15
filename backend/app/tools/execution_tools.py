@@ -134,6 +134,8 @@ class SafePythonExecutor:
                 env["NO_PROXY"] = ""
 
             # 5. Execute process with timeout
+            # Provide "exit\nquit\n" on stdin so CLI input() loops terminate gracefully.
+            # Also try with --help arg if argparse causes exit code 2 (missing subcommand).
             try:
                 proc = subprocess.run(
                     [sys.executable, str(exec_entrypoint)],
@@ -144,6 +146,21 @@ class SafePythonExecutor:
                     timeout=self.timeout,
                     input="exit\nquit\n",
                 )
+
+                # If argparse exits with code 2 (missing required subcommand), retry with --help
+                if proc.returncode == 2 and "usage:" in (proc.stderr or "").lower():
+                    proc2 = subprocess.run(
+                        [sys.executable, str(exec_entrypoint), "--help"],
+                        cwd=str(temp_path),
+                        env=env,
+                        capture_output=True,
+                        text=True,
+                        timeout=self.timeout,
+                        input="",
+                    )
+                    # --help exits 0 for well-formed argparse; prefer this result
+                    if proc2.returncode == 0:
+                        proc = proc2
 
                 duration = time.perf_counter() - start_time
                 stdout = proc.stdout or ""

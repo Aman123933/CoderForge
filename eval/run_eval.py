@@ -47,20 +47,29 @@ def run_acceptance_check(
 ) -> bool:
     """
     Runs acceptance check in a dedicated test runner file that imports all project modules.
+    Imports all .py files from the project (wildcard), then runs the check snippet.
     """
     project = dict(code_or_project) if isinstance(code_or_project, dict) else {"main.py": str(code_or_project)}
 
+    # Build safe import block: set argv to empty list so argparse won't trigger,
+    # catch SystemExit from --help or missing args in any module
     imports_block = (
         "import sys\n"
         "original_argv = list(sys.argv)\n"
-        "sys.argv = ['test_runner', '--help']\n"
+        "sys.argv = ['__test__']\n"
     )
-    for filename in project.keys():
+    for filename in sorted(project.keys()):
         if filename.endswith(".py") and not filename.startswith("_"):
             mod = filename[:-3].replace("/", ".").replace("\\", ".")
-            imports_block += f"try:\n    from {mod} import *\nexcept Exception:\n    pass\n"
+            imports_block += (
+                f"try:\n"
+                f"    from {mod} import *\n"
+                f"except SystemExit:\n"
+                f"    pass\n"
+                f"except Exception:\n"
+                f"    pass\n"
+            )
     imports_block += "sys.argv = original_argv\n"
-
 
     test_harness = (
         f"{imports_block}\n"
