@@ -3,6 +3,8 @@ import Head from "next/head";
 import { PromptInput } from "@/components/PromptInput";
 import { StageTracker, PipelineStage } from "@/components/StageTracker";
 import { ResultTabs } from "@/components/ResultTabs";
+import { MetricsPanel } from "@/components/MetricsPanel";
+import { RunHistory } from "@/components/RunHistory";
 import { runPrompt, PipelineResult } from "@/api/client";
 
 export default function Home() {
@@ -10,6 +12,7 @@ export default function Home() {
   const [stage, setStage] = useState<PipelineStage>("idle");
   const [error, setError] = useState<string | null>(null);
   const [currentResult, setCurrentResult] = useState<PipelineResult | null>(null);
+  const [refreshHistory, setRefreshHistory] = useState(0);
 
   const handleGenerate = async (prompt: string) => {
     setIsLoading(true);
@@ -33,6 +36,7 @@ export default function Home() {
 
       setCurrentResult(data.result);
       setStage("completed");
+      setRefreshHistory((prev) => prev + 1);
     } catch (err: any) {
       clearTimeout(timer1);
       clearTimeout(timer2);
@@ -45,6 +49,11 @@ export default function Home() {
     } finally {
       setIsLoading(false);
     }
+  };
+
+  const handleSelectHistoryRun = (result: PipelineResult) => {
+    setCurrentResult(result);
+    setStage("completed");
   };
 
   return (
@@ -96,10 +105,16 @@ export default function Home() {
         )}
 
         {currentResult && (
-          <ResultTabs result={currentResult} />
+          <>
+            <MetricsPanel metrics={currentResult.metrics} />
+            <ResultTabs result={currentResult} />
+          </>
         )}
+
+        <RunHistory onSelectRun={handleSelectHistoryRun} refreshTrigger={refreshHistory} />
       </main>
     </div>
   );
 }
+
 
