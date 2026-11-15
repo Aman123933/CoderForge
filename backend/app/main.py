@@ -1,4 +1,6 @@
+import os
 from fastapi import FastAPI
+from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel
 
 from backend.app.agents.runner_agent import RunnerAgent
@@ -10,51 +12,62 @@ from backend.app.agents.reviewer_agent import ReviewerAgent
 
 from backend.app.llm.gemini_client import GeminiClient
 from backend.app.tools.logging_tools import setup_logger
-
+from backend.app.api import routes
 
 # ----------------------------
 # App & Logger
 # ----------------------------
 
-app = FastAPI(title="AI Autonomous Coder")
+app = FastAPI(title="CodeForge - Autonomous Multi-Agent Code Generation")
 logger = setup_logger()
 
+# ----------------------------
+# CORS Middleware
+# ----------------------------
+
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=["*"],
+    allow_credentials=True,
+    allow_methods=["*"],
+    allow_headers=["*"],
+)
 
 # ----------------------------
 # LLM + Agents Initialization
 # ----------------------------
 
-llm = GeminiClient()
+try:
+    llm = GeminiClient()
+    runner = RunnerAgent(
+        intent_agent=IntentExtractionAgent(llm),
+        planner_agent=PlannerAgent(llm),
+        architect_agent=ArchitectAgent(llm),
+        coder_agent=CoderAgent(llm),
+        reviewer_agent=ReviewerAgent(llm),
+    )
+    routes.set_runner(runner)
+except Exception as e:
+    logger.warning("Default GeminiClient initialization skipped (e.g. running offline or without key): %s", e)
+    runner = None
 
-runner = RunnerAgent(
-    intent_agent=IntentExtractionAgent(llm),
-    planner_agent=PlannerAgent(llm),
-    architect_agent=ArchitectAgent(llm),
-    coder_agent=CoderAgent(llm),
-    reviewer_agent=ReviewerAgent(llm),
-)
+# ----------------------------
+# Include Routes
+# ----------------------------
+
+# Mount routes under /api and root
+app.include_router(routes.router, prefix="/api")
+app.include_router(routes.router)
 
 
 # ----------------------------
-# Request / Response Models
+# Direct Routes for backwards compatibility
 # ----------------------------
 
 class RunRequest(BaseModel):
     prompt: str
 
 
-# ----------------------------
-# Routes
-# ----------------------------
-
 @app.get("/health")
 def health():
     return {"status": "ok"}
-
-
-@app.post("/run")
-def run_agent(request: RunRequest):
-    logger.info("Received run request")
-    result = runner.run(request.prompt)
-    logger.info("Run completed")
-    return result

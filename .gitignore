@@ -53,6 +53,7 @@ yarn-error.log*
 *.db
 *.sqlite3
 backend/app/runs.db
+backend/app/metrics/*.jsonl
 backend/app/generated_apps/*
 !backend/app/generated_apps/.gitkeep
 

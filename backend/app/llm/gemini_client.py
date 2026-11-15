@@ -1,17 +1,97 @@
 import os
-import google.generativeai as genai
+import time
+from pathlib import Path
+from typing import Optional, Dict, Any
+
+from dotenv import load_dotenv
 from backend.app.llm.llm_interface import LLMInterface
+
+# Always load backend/.env with override=True
+_env_path = Path(__file__).resolve().parent.parent.parent / ".env"
+if _env_path.exists():
+    load_dotenv(_env_path, override=True)
 
 
 class GeminiClient(LLMInterface):
-    def __init__(self, api_key: str | None = None, model: str = "gemini-1.5-flash"):
-        api_key = api_key or os.getenv("GEMINI_API_KEY")
-        if not api_key:
+    def __init__(
+        self,
+        api_key: Optional[str] = None,
+        model: Optional[str] = None,
+        temperature: float = 0.2,
+    ):
+        self.api_key = api_key or os.getenv("GEMINI_API_KEY")
+        self.model_name = model or os.getenv("GEMINI_MODEL", "gemini-3.5-flash-lite")
+        self.temperature = temperature
+
+        self._model = None
+        self.call_count = 0
+        self.last_usage: Dict[str, int] = {
+            "input_tokens": 0,
+            "output_tokens": 0,
+            "total_tokens": 0,
+        }
+        self.cumulative_usage: Dict[str, int] = {
+            "input_tokens": 0,
+            "output_tokens": 0,
+            "total_tokens": 0,
+        }
+
+    def _ensure_model(self, response_mime_type: Optional[str] = None):
+        if not self.api_key:
             raise ValueError("GEMINI_API_KEY not set")
+        import google.generativeai as genai
+        genai.configure(api_key=self.api_key, transport="rest")
 
-        genai.configure(api_key=api_key)
-        self.model = genai.GenerativeModel(model)
+        config: Dict[str, Any] = {"temperature": self.temperature}
+        if response_mime_type:
+            config["response_mime_type"] = response_mime_type
 
-    def generate(self, prompt: str) -> str:
-        response = self.model.generate_content(prompt)
+        return genai.GenerativeModel(
+            self.model_name,
+            generation_config=config,
+        )
+
+    def generate(self, prompt: str, response_mime_type: Optional[str] = None) -> str:
+        time.sleep(2.0)
+        model = self._ensure_model(response_mime_type=response_mime_type)
+
+        self.call_count += 1
+        response = model.generate_content(prompt)
+
+        # Extract usage metadata
+        input_tokens = 0
+        output_tokens = 0
+        total_tokens = 0
+
+        usage = getattr(response, "usage_metadata", None)
+        if usage:
+            input_tokens = getattr(usage, "prompt_token_count", 0) or 0
+            output_tokens = getattr(usage, "candidates_token_count", 0) or 0
+            total_tokens = getattr(usage, "total_token_count", 0) or (input_tokens + output_tokens)
+
+        self.last_usage = {
+            "input_tokens": input_tokens,
+            "output_tokens": output_tokens,
+            "total_tokens": total_tokens,
+        }
+        self.cumulative_usage["input_tokens"] += input_tokens
+        self.cumulative_usage["output_tokens"] += output_tokens
+        self.cumulative_usage["total_tokens"] += total_tokens
+
         return response.text.strip()
+
+    def generate_json(self, prompt: str) -> str:
+        return self.generate(prompt, response_mime_type="application/json")
+
+    def get_usage(self) -> Dict[str, Any]:
+        return {
+            "llm_calls": self.call_count,
+            "last_usage": dict(self.last_usage),
+            "cumulative_usage": dict(self.cumulative_usage),
+        }
+
+    def reset_usage(self) -> None:
+        self.call_count = 0
+        self.last_usage = {"input_tokens": 0, "output_tokens": 0, "total_tokens": 0}
+        self.cumulative_usage = {"input_tokens": 0, "output_tokens": 0, "total_tokens": 0}
+

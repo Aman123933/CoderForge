@@ -1,5 +1,5 @@
 import json
-from typing import Dict, Any
+from typing import Dict, Any, Union
 from backend.app.agents.base_agent import BaseAgent
 
 
@@ -14,10 +14,17 @@ class ReviewerAgent(BaseAgent):
 
     def review_code(
         self,
-        code: str,
+        code: Union[str, Dict[str, str]],
         architecture_context: Dict[str, Any] | None = None
     ) -> Dict[str, Any]:
-        prompt = self._build_prompt(code, architecture_context)
+        if isinstance(code, dict):
+            code_text = "\n\n".join(
+                f"### FILE: {path}\n{content}" for path, content in code.items()
+            )
+        else:
+            code_text = str(code)
+
+        prompt = self._build_prompt(code_text, architecture_context)
         response = self.call_llm(prompt)
         data = self.parse_json(response)
 
@@ -37,6 +44,14 @@ class ReviewerAgent(BaseAgent):
                     raise ValueError(f"Issue missing key: {key}")
 
         return data
+
+    def review_project(
+        self,
+        project: Dict[str, str],
+        architecture_context: Dict[str, Any] | None = None,
+    ) -> Dict[str, Any]:
+        return self.review_code(project, architecture_context=architecture_context)
+
 
     def _build_prompt(
         self,
@@ -93,9 +108,15 @@ OUTPUT (STRICT JSON ONLY)
 REVIEW RULES
 ---------------------------------
 - Focus on correctness, clarity, maintainability, and safety
+- Check that function/class calls and constructor kwargs match definitions across files
+- Ensure all required methods from the prompt are implemented exactly as specified
+- ONLY mark an issue as 'critical' or 'major' if it is a genuine runtime crash, syntax error, broken import, or a missing core method.
+- Mark style, naming preferences, or non-blocking suggestions as 'minor'.
+- If the implementation is working and meets user requirements, return an empty issues list [] or only 'minor' issues.
 - Do NOT rewrite code
 - Do NOT suggest specific tools or frameworks
 - Be concise and actionable
+
 """
 
 
