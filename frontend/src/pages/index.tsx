@@ -1,21 +1,47 @@
 import React, { useState } from "react";
 import Head from "next/head";
 import { PromptInput } from "@/components/PromptInput";
+import { StageTracker, PipelineStage } from "@/components/StageTracker";
+import { ResultTabs } from "@/components/ResultTabs";
 import { runPrompt, PipelineResult } from "@/api/client";
 
 export default function Home() {
   const [isLoading, setIsLoading] = useState(false);
+  const [stage, setStage] = useState<PipelineStage>("idle");
   const [error, setError] = useState<string | null>(null);
   const [currentResult, setCurrentResult] = useState<PipelineResult | null>(null);
 
   const handleGenerate = async (prompt: string) => {
     setIsLoading(true);
     setError(null);
+    setStage("intent");
+
+    // Simulated progress stage transitions while backend processes
+    const timer1 = setTimeout(() => setStage("plan"), 1200);
+    const timer2 = setTimeout(() => setStage("architecture"), 2500);
+    const timer3 = setTimeout(() => setStage("code"), 4000);
+    const timer4 = setTimeout(() => setStage("review"), 6000);
+    const timer5 = setTimeout(() => setStage("run"), 7500);
+
     try {
       const data = await runPrompt(prompt);
+      clearTimeout(timer1);
+      clearTimeout(timer2);
+      clearTimeout(timer3);
+      clearTimeout(timer4);
+      clearTimeout(timer5);
+
       setCurrentResult(data.result);
+      setStage("completed");
     } catch (err: any) {
+      clearTimeout(timer1);
+      clearTimeout(timer2);
+      clearTimeout(timer3);
+      clearTimeout(timer4);
+      clearTimeout(timer5);
+
       setError(err.message || "An unexpected error occurred");
+      setStage("idle");
     } finally {
       setIsLoading(false);
     }
@@ -51,6 +77,14 @@ export default function Home() {
       <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8 space-y-6">
         <PromptInput onGenerate={handleGenerate} isLoading={isLoading} />
 
+        {stage !== "idle" && (
+          <StageTracker
+            currentStage={stage}
+            activeAttempt={currentResult?.attempts?.length || 1}
+            maxAttempts={3}
+          />
+        )}
+
         {error && (
           <div className="p-4 rounded-xl bg-red-950/40 border border-red-800/80 text-red-300 text-sm flex items-start gap-3">
             <span className="text-lg">⚠️</span>
@@ -60,7 +94,12 @@ export default function Home() {
             </div>
           </div>
         )}
+
+        {currentResult && (
+          <ResultTabs result={currentResult} />
+        )}
       </main>
     </div>
   );
 }
+
