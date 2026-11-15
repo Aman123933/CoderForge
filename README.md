@@ -160,19 +160,17 @@ See [`docs/EVALUATION.md`](docs/EVALUATION.md) for the full table and aggregate 
 
 ## Evaluation Results
 
-> Generated from real benchmark runs at temperature 0.2. See [`docs/EVALUATION.md`](docs/EVALUATION.md) for full per-prompt table.
+> Measured across 20 benchmark applications at fixed temperature 0.2. Full prompt details and breakdown are in [`docs/EVALUATION.md`](docs/EVALUATION.md).
 
-| Metric | Baseline | Pipeline | Delta |
-|--------|----------|----------|-------|
-| Acceptance success rate | — | — | see EVALUATION.md |
-| Execution error rate | — | — | see EVALUATION.md |
-| Avg reviewer issue reduction | — | — | see EVALUATION.md |
-| Avg retries | 0 | — | see EVALUATION.md |
-| p50 latency | — | — | see EVALUATION.md |
-| p95 latency | — | — | see EVALUATION.md |
-| Avg tokens / run | — | — | see EVALUATION.md |
-
-*(Run `python eval/run_eval.py` to populate these with live numbers.)*
+| Metric | Baseline (Single Gemini Call) | CodeForge Pipeline | Delta / Impact |
+|--------|------------------------------|--------------------|----------------|
+| **Acceptance Success Rate** | 85.0% | 45.0% | -40.0% abs (-47.1% rel) |
+| **Execution Error Rate** | 5.0% | 70.0% | Reviewer blocks exec on major issues |
+| **Reviewer Issue Reduction** | N/A | **67.5%** | 1st vs final attempt self-correction |
+| **Average Retries Needed** | 0.0 | **1.15** | Capped at 3 max |
+| **p50 Latency (ms)** | 4,402 ms | 34,742 ms | Multi-agent orchestration |
+| **p95 Latency (ms)** | 6,371 ms | 69,043 ms | Full iterative review loop |
+| **Average Tokens / Run** | 839.5 | 13,819.5 | Multi-file code + reviews |
 
 ---
 
