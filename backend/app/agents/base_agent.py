@@ -45,10 +45,14 @@ class BaseAgent:
         for attempt in range(self.max_retries + 1):
             try:
                 self.logger.debug("LLM call attempt %s", attempt + 1)
-                response = self.llm.generate(prompt)
+                if hasattr(self.llm, "generate_json") and self.require_json:
+                    response = self.llm.generate_json(prompt)
+                else:
+                    response = self.llm.generate(prompt)
 
                 if not isinstance(response, str) or not response.strip():
                     raise ValueError("Empty or non-text LLM response")
+
 
                 if self.require_json and response.lstrip().startswith("```"):
                     raise ValueError("Markdown detected; expected raw JSON")
@@ -57,14 +61,26 @@ class BaseAgent:
 
             except Exception as e:
                 last_err = e
-                self.logger.warning(
-                    "LLM call failed (attempt %s/%s): %s",
-                    attempt + 1,
-                    self.max_retries + 1,
-                    str(e),
-                )
+                err_msg = str(e)
+                wait_time = self.retry_backoff_sec * (attempt + 1)
+                if "429" in err_msg or "quota" in err_msg.lower():
+                    wait_time = 30.0
+                    self.logger.warning(
+                        "Rate limit (429) hit. Waiting %ss before retry (attempt %s/%s)",
+                        wait_time,
+                        attempt + 1,
+                        self.max_retries + 1,
+                    )
+                else:
+                    self.logger.warning(
+                        "LLM call failed (attempt %s/%s): %s",
+                        attempt + 1,
+                        self.max_retries + 1,
+                        err_msg,
+                    )
                 if attempt < self.max_retries:
-                    time.sleep(self.retry_backoff_sec * (attempt + 1))
+                    time.sleep(wait_time)
+
 
         raise RuntimeError(
             f"{self.agent_name}: LLM call failed after retries"
@@ -76,12 +92,21 @@ class BaseAgent:
         """
         Strict JSON parsing. Fails fast.
         """
+        text = response_text.strip()
+        if text.startswith("```"):
+            lines = text.splitlines()
+            if lines[0].startswith("```"):
+                lines = lines[1:]
+            if lines and lines[-1].strip() == "```":
+                lines = lines[:-1]
+            text = "\n".join(lines).strip()
         try:
-            return json.loads(response_text)
+            return json.loads(text)
         except json.JSONDecodeError as e:
             raise ValueError(
                 f"{self.agent_name}: response is not valid JSON"
             ) from e
+
 
     def validate_required_keys(self, data: Dict[str, Any], required_keys: set[str]) -> None:
         missing = required_keys - data.keys()

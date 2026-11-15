@@ -65,6 +65,7 @@ class RunnerAgent:
         # 3. Architecture Design
         with metrics.measure("architect"):
             architecture = self.architect_agent.design_architecture(plan)
+        architecture["prompt"] = user_prompt
         self.memory.set("architecture", architecture)
 
         # 4. Multi-file generation + self-correction review loop

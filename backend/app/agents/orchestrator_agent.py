@@ -47,6 +47,7 @@ class OrchestratorAgent:
 
         # 3️⃣ Architecture Design
         architecture = self.architect_agent.design_architecture(plan)
+        architecture["prompt"] = user_input
 
         # 4️⃣ Multi-file Generation + Self-Correction Review Loop
         generation_result = self._generate_and_review(architecture)

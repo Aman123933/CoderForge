@@ -108,9 +108,15 @@ OUTPUT (STRICT JSON ONLY)
 REVIEW RULES
 ---------------------------------
 - Focus on correctness, clarity, maintainability, and safety
+- Check that function/class calls and constructor kwargs match definitions across files
+- Ensure all required methods from the prompt are implemented exactly as specified
+- ONLY mark an issue as 'critical' or 'major' if it is a genuine runtime crash, syntax error, broken import, or a missing core method.
+- Mark style, naming preferences, or non-blocking suggestions as 'minor'.
+- If the implementation is working and meets user requirements, return an empty issues list [] or only 'minor' issues.
 - Do NOT rewrite code
 - Do NOT suggest specific tools or frameworks
 - Be concise and actionable
+
 """
 
 

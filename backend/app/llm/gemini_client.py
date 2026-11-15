@@ -1,6 +1,15 @@
 import os
+import time
+from pathlib import Path
 from typing import Optional, Dict, Any
+
+from dotenv import load_dotenv
 from backend.app.llm.llm_interface import LLMInterface
+
+# Always load backend/.env with override=True
+_env_path = Path(__file__).resolve().parent.parent.parent / ".env"
+if _env_path.exists():
+    load_dotenv(_env_path, override=True)
 
 
 class GeminiClient(LLMInterface):
@@ -11,8 +20,9 @@ class GeminiClient(LLMInterface):
         temperature: float = 0.2,
     ):
         self.api_key = api_key or os.getenv("GEMINI_API_KEY")
-        self.model_name = model or os.getenv("GEMINI_MODEL", "gemini-1.5-flash")
+        self.model_name = model or os.getenv("GEMINI_MODEL", "gemini-3.5-flash-lite")
         self.temperature = temperature
+
         self._model = None
         self.call_count = 0
         self.last_usage: Dict[str, int] = {
@@ -26,20 +36,25 @@ class GeminiClient(LLMInterface):
             "total_tokens": 0,
         }
 
-    def _ensure_model(self):
-        if self._model is None:
-            if not self.api_key:
-                raise ValueError("GEMINI_API_KEY not set")
-            import google.generativeai as genai
-            genai.configure(api_key=self.api_key)
-            self._model = genai.GenerativeModel(
-                self.model_name,
-                generation_config={"temperature": self.temperature},
-            )
-        return self._model
+    def _ensure_model(self, response_mime_type: Optional[str] = None):
+        if not self.api_key:
+            raise ValueError("GEMINI_API_KEY not set")
+        import google.generativeai as genai
+        genai.configure(api_key=self.api_key, transport="rest")
 
-    def generate(self, prompt: str) -> str:
-        model = self._ensure_model()
+        config: Dict[str, Any] = {"temperature": self.temperature}
+        if response_mime_type:
+            config["response_mime_type"] = response_mime_type
+
+        return genai.GenerativeModel(
+            self.model_name,
+            generation_config=config,
+        )
+
+    def generate(self, prompt: str, response_mime_type: Optional[str] = None) -> str:
+        time.sleep(2.0)
+        model = self._ensure_model(response_mime_type=response_mime_type)
+
         self.call_count += 1
         response = model.generate_content(prompt)
 
@@ -64,6 +79,9 @@ class GeminiClient(LLMInterface):
         self.cumulative_usage["total_tokens"] += total_tokens
 
         return response.text.strip()
+
+    def generate_json(self, prompt: str) -> str:
+        return self.generate(prompt, response_mime_type="application/json")
 
     def get_usage(self) -> Dict[str, Any]:
         return {

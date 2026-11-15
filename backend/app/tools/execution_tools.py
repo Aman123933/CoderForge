@@ -142,7 +142,9 @@ class SafePythonExecutor:
                     capture_output=True,
                     text=True,
                     timeout=self.timeout,
+                    input="exit\nquit\n",
                 )
+
                 duration = time.perf_counter() - start_time
                 stdout = proc.stdout or ""
                 stderr = proc.stderr or ""

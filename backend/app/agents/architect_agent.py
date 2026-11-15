@@ -89,10 +89,12 @@ OUTPUT (STRICT JSON ONLY):
 }}
 
 RULES:
-- Provide an explicit list of 'files' needed to implement the solution
+- Provide an explicit list of 1 to 3 modular 'files' needed to implement the solution (e.g. main.py, models.py)
+- Always include an entrypoint file (main.py) containing primary classes and execution logic
 - Each file must have file_path, file_purpose, and a list of requirements
 - Minimal, clean, modular design
 - Output ONLY valid JSON
+
 
 PLAN DATA:
 {json.dumps(plan_data, indent=2)}

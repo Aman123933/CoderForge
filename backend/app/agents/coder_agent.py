@@ -104,9 +104,11 @@ class CoderAgent(BaseAgent):
 
         context_block = ""
         if context:
+            user_req = context.get("prompt") or context.get("user_prompt", "")
+            prompt_line = f"User Request: {user_req}\n" if user_req else ""
             context_block = f"""
 PROJECT CONTEXT:
-System Overview: {context.get("system_overview", "")}
+{prompt_line}System Overview: {context.get("system_overview", "")}
 Data Models: {context.get("data_models", [])}
 Other Files: {[f.get("file_path") for f in context.get("files", []) if isinstance(f, dict)]}
 """
@@ -136,6 +138,10 @@ You are a CODER AGENT acting as a senior software engineer.
 - Do NOT explain anything.
 - Do NOT use markdown prose. Return executable Python code only.
 - Output ONLY valid, complete, working code.
+- Always expose classes and functions cleanly at the module level.
+- Ensure constructor parameters match callers across files and accept standard keyword arguments.
+- Always guard any CLI parsing or script execution with `if __name__ == '__main__':` so modules can be imported safely.
+
 
 FILE PATH:
 {file_spec["file_path"]}

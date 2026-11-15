@@ -46,24 +46,44 @@ def run_acceptance_check(
     entrypoint: str = "main.py",
 ) -> bool:
     """
-    Appends the acceptance check snippet to the entrypoint code
-    and runs it in the sandbox to verify functionality.
+    Runs acceptance check in a dedicated test runner file that imports all project modules.
     """
-    test_harness = f"\n\n# --- ACCEPTANCE CHECK ---\ntry:\n"
+    project = dict(code_or_project) if isinstance(code_or_project, dict) else {"main.py": str(code_or_project)}
+
+    imports_block = (
+        "import sys\n"
+        "original_argv = list(sys.argv)\n"
+        "sys.argv = ['test_runner', '--help']\n"
+    )
+    for filename in project.keys():
+        if filename.endswith(".py") and not filename.startswith("_"):
+            mod = filename[:-3].replace("/", ".").replace("\\", ".")
+            imports_block += f"try:\n    from {mod} import *\nexcept Exception:\n    pass\n"
+    imports_block += "sys.argv = original_argv\n"
+
+
+    test_harness = (
+        f"{imports_block}\n"
+        f"try:\n"
+    )
     for line in check_snippet.splitlines():
         test_harness += f"    {line}\n"
-    test_harness += "\nexcept Exception as e:\n    import sys, traceback\n    traceback.print_exc()\n    sys.exit(1)\n"
+    test_harness += (
+        f"\nexcept Exception as e:\n"
+        f"    import traceback; traceback.print_exc()\n"
+        f"    sys.exit(1)\n"
+    )
 
-    if isinstance(code_or_project, dict):
-        test_project = dict(code_or_project)
-        ep = entrypoint if entrypoint in test_project else next(iter(test_project.keys()), "main.py")
-        test_project[ep] = test_project[ep] + test_harness
-        res = executor.execute_project(test_project)
-    else:
-        test_code = str(code_or_project) + test_harness
-        res = executor.execute(test_code, entrypoint="main.py")
+    test_project = dict(project)
+    test_project["_test_runner.py"] = test_harness
+    manifest = {"entrypoint": "_test_runner.py", "files": list(test_project.keys())}
+    res = executor.execute_project(test_project, manifest=manifest)
 
-    return bool(res.get("success") and res.get("exit_code") == 0 and "CHECK_PASSED" in (res.get("output", "") + res.get("stderr", "")))
+    output = (res.get("output", "") + "\n" + res.get("stderr", ""))
+    return bool(res.get("success") and res.get("exit_code") == 0 and "CHECK_PASSED" in output)
+
+
+
 
 
 def run_baseline(
