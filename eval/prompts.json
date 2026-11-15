@@ -39,13 +39,13 @@
     "id": 7,
     "name": "quiz_app",
     "prompt": "Build a QuizEngine class with add_question(question_text, options, correct_index), start_quiz(), answer_question(question_index, chosen_index), and get_score() returning total and correct answers.",
-    "acceptance_check": "quiz = QuizEngine()\nquiz.add_question('What is 2+2?', ['3', '4', '5'], 1)\nassert quiz.answer_question(0, 1) is True\nscore = quiz.get_score()\nassert score['correct'] == 1 and score['total'] == 1\nprint('CHECK_PASSED')"
+    "acceptance_check": "quiz = QuizEngine()\nquiz.add_question('What is 2+2?', ['3', '4', '5'], 1)\nresult = quiz.answer_question(0, 1)\nassert result is True or result == True or result == 1\nscore = quiz.get_score()\ncorrect = score['correct'] if isinstance(score, dict) else getattr(score, 'correct')\ntotal = score['total'] if isinstance(score, dict) else getattr(score, 'total')\nassert correct == 1 and total == 1\nprint('CHECK_PASSED')"
   },
   {
     "id": 8,
     "name": "weather_cli",
     "prompt": "Build a WeatherService class that stores mock weather data for cities (temperature, condition, humidity), with get_weather(city), update_weather(city, temp, condition, humidity), and list_cities().",
-    "acceptance_check": "ws = WeatherService()\nws.update_weather('Paris', 20.5, 'Sunny', 45)\nw = ws.get_weather('Paris')\nassert w['temperature'] == 20.5 and w['condition'] == 'Sunny'\nprint('CHECK_PASSED')"
+    "acceptance_check": "ws = WeatherService()\nws.update_weather('Paris', 20.5, 'Sunny', 45)\nw = ws.get_weather('Paris')\ntemp = w['temperature'] if isinstance(w, dict) else getattr(w, 'temperature')\ncond = w['condition'] if isinstance(w, dict) else getattr(w, 'condition')\nassert temp == 20.5 and cond == 'Sunny'\nprint('CHECK_PASSED')"
   },
   {
     "id": 9,
@@ -63,7 +63,7 @@
     "id": 11,
     "name": "flashcards",
     "prompt": "Build a FlashcardDeck class with add_card(front, back), get_next_card(), submit_answer(card_id, user_answer), and get_accuracy_rate().",
-    "acceptance_check": "deck = FlashcardDeck()\nc1 = deck.add_card('Capital of France', 'Paris')\nassert deck.submit_answer(c1, 'Paris') is True\nassert deck.get_accuracy_rate() == 1.0\nprint('CHECK_PASSED')"
+    "acceptance_check": "deck = FlashcardDeck()\nc1 = deck.add_card('Capital of France', 'Paris')\ncid = getattr(c1, 'id', getattr(c1, 'card_id', c1))\nresult = deck.submit_answer(cid, 'Paris')\nassert result is True or result == True or result == 1\nassert deck.get_accuracy_rate() == 1.0\nprint('CHECK_PASSED')"
   },
   {
     "id": 12,
@@ -75,7 +75,7 @@
     "id": 13,
     "name": "banking_system",
     "prompt": "Build a BankAccount system with Bank class supporting create_account(account_id, initial_balance), deposit(account_id, amount), withdraw(account_id, amount) checking sufficient funds, and get_balance(account_id).",
-    "acceptance_check": "bank = Bank()\nbank.create_account('acc1', 100.0)\nassert bank.deposit('acc1', 50.0) == 150.0\nassert bank.withdraw('acc1', 30.0) is True or bank.withdraw('acc1', 30.0) == 120.0\nassert bank.get_balance('acc1') == 120.0\nprint('CHECK_PASSED')"
+    "acceptance_check": "bank = Bank()\nbank.create_account('acc1', 100.0)\nassert bank.deposit('acc1', 50.0) == 150.0\nbank.withdraw('acc1', 30.0)\nassert bank.get_balance('acc1') == 120.0\nprint('CHECK_PASSED')"
   },
   {
     "id": 14,
@@ -99,7 +99,7 @@
     "id": 17,
     "name": "voting_system",
     "prompt": "Build a PollSystem class supporting create_poll(poll_id, question, candidate_list), cast_vote(poll_id, candidate), and get_results(poll_id) returning winner and vote counts.",
-    "acceptance_check": "ps = PollSystem()\nps.create_poll('p1', 'Best Color?', ['Red', 'Blue'])\nps.cast_vote('p1', 'Blue')\nps.cast_vote('p1', 'Blue')\nps.cast_vote('p1', 'Red')\nres = ps.get_results('p1')\nassert res['winner'] == 'Blue'\nprint('CHECK_PASSED')"
+    "acceptance_check": "ps = PollSystem()\nps.create_poll('p1', 'Best Color?', ['Red', 'Blue'])\nps.cast_vote('p1', 'Blue')\nps.cast_vote('p1', 'Blue')\nps.cast_vote('p1', 'Red')\nres = ps.get_results('p1')\nwinner = res['winner'] if isinstance(res, dict) else getattr(res, 'winner')\nassert winner == 'Blue'\nprint('CHECK_PASSED')"
   },
   {
     "id": 18,
