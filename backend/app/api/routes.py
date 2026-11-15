@@ -4,9 +4,11 @@ from fastapi import APIRouter, HTTPException, Query
 from pydantic import BaseModel
 
 from backend.app.memory.run_store import RunStore
+from backend.app.tools.metrics_collector import compute_aggregates, load_all_metrics
 
 router = APIRouter()
 run_store = RunStore()
+
 
 # Global runner instance will be injected from main.py or initialized lazily
 _runner_instance = None
@@ -98,3 +100,29 @@ def get_run(run_id: str):
     if not run:
         raise HTTPException(status_code=404, detail=f"Run '{run_id}' not found")
     return run
+
+
+@router.get("/metrics")
+def get_metrics():
+    # Combine metrics from RunStore and metrics.jsonl
+    db_metrics = run_store.get_all_metrics()
+    file_metrics = load_all_metrics()
+
+    # Deduplicate by run_id
+    metrics_by_id = {}
+    for m in db_metrics:
+        if isinstance(m, dict) and "run_id" in m:
+            metrics_by_id[m["run_id"]] = m
+    for m in file_metrics:
+        if isinstance(m, dict) and "run_id" in m:
+            metrics_by_id[m["run_id"]] = m
+
+    all_records = list(metrics_by_id.values())
+    aggregates = compute_aggregates(all_records)
+
+    return {
+        "status": "ok",
+        "aggregates": aggregates,
+        "recent_runs_count": len(all_records),
+    }
+
